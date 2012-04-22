@@ -1,0 +1,8 @@
+CONFIGURATION
+ superscalar bandwidth (N) = 4
+ dispatch queue size (2*N) = 8
+ schedule queue size (S)   = 16
+RESULTS
+ number of instructions = 5000
+ number of cycles       = 1653
+ IPC                    = 3.02
