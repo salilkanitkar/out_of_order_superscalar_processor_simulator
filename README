@@ -1,5 +1,7 @@
 The aim of this project is to construct a Simulator for an Out-of-order superscalar processor based on the Tomasulo's Algorithm.
 Only the dynamic scheduling mechanism is to be modeled i.e. perfect caches and perfect branch predictions are assumed.
+Also, the simulator will not be able to maintain precise interrupts. There is no Reorder Buffer (ROB). So instructions update
+the register file as soon as they complete.
 
 The simulator will accept following arguments -
 ./sim <S> <N> <tracefile>
