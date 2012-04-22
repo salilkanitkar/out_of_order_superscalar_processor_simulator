@@ -1,0 +1,23 @@
+The aim of this project is to construct a Simulator for an Out-of-order superscalar processor based on the Tomasulo's Algorithm. 
+Only the dynamic scheduling mechanism is to be modeled i.e. perfect caches and perfect branch predictions are assumed.
+
+The simulator will accept following arguments - 
+./sim <S> <N> <tracefile>
+Where, 
+S: Scheduling Queue Size, 
+N: peak fetch, dispatch and issue rate.
+tracefile: Filename of the input trace.
+
+The simulator will output following -
+1) Timing information for every instruction - 
+For every instruction, for each of the pipeline phases IF, ID, IS, EX & WB, the first cycle that the Instruction was in 
+that phase and the number of cycles the instruction was in that phase should be displayed.
+2) The microarchitecture configuration for a particular run.
+3) Following Measurements - 
+ 1. Total number of instructions
+ 2. Total number of cycles to finish the program
+ 3. Average number of instructions completed per cycles (IPC)
+
+The tracefile has multiple lines of following format - 
+<PC> <operation type> <dest reg #> <src1 reg #> <src2 reg #>
+
