@@ -21,6 +21,10 @@ node_t *dispatch_list=0;
 node_t *issue_list=0;
 node_t *execute_list=0;
 
+int dispatch_iter=0;
+int issue_iter=0;
+int execute_iter=0;
+
 void print_usage();
 
 int main(int argc, char *argv[])

@@ -52,6 +52,8 @@ void initialize_data_structs(int S, int N)
 		dispatch_list[i].next = 0;
 	}
 
+	dispatch_iter = 0;
+
 	/* Initilize and allocate Issue_List.
 	   The issue_list models the Scheduling Queue.
 	   It contains the list of instructions in IS stage. These will be those waiting for operands or available issue bandwidth.
@@ -75,12 +77,14 @@ void initialize_data_structs(int S, int N)
 		issue_list[i].next = 0;
 	}
 
+	issue_iter = 0;
+
 	/* Initilize and allocate Execute_List. 
 	   The execute_list models the Scheduling Queue. The execute_list models the N FUs (Fully pipelined Functional Units).
 	   It contains the list of instructions in EX stage. These will be those waiting for execution latency of the operation.
 	   The issue_list will be of size "N".
  	*/
-	execute_list = (node_t *)malloc(sizeof(node_t) * 2 * S);
+	execute_list = (node_t *)malloc(sizeof(node_t) * N);
 	if (!execute_list) {
 		printf("Error in allocating memory!\n");
 		printf("Exiting...\n");
@@ -98,5 +102,6 @@ void initialize_data_structs(int S, int N)
 		execute_list[i].next = 0;
 	}
 
+	execute_iter = 0;
 }
 

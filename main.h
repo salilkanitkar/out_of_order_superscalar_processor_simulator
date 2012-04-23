@@ -51,5 +51,9 @@ extern node_t *dispatch_list;
 extern node_t *issue_list;
 extern node_t *execute_list;
 
+extern int dispatch_iter;
+extern int issue_iter;
+extern int execute_iter;
+
 extern void initialize_data_structs(int, int);
 
