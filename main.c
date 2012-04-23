@@ -14,6 +14,12 @@ char trace_file[MAX_TRACEFILE_NAME_LEN];
 char trace_str[MAX_TRACESTR_LEN];
 
 inst_t inst;
+unsigned int tag=0;
+
+node_t *fake_rob=0;
+node_t *dispatch_list=0;
+node_t *issue_list=0;
+node_t *execute_list=0;
 
 void print_usage();
 
@@ -37,11 +43,16 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	initialize_data_structs(S, N);
+
 	while (fgets(trace_str, MAX_TRACESTR_LEN, fp_trace)) {
 
 		sscanf(trace_str, "%x %d %d %d %d\n", &inst.pc, &inst.op, &inst.dest_reg, &inst.src1_reg, &inst.src2_reg);
 
+#ifdef DEBUG_FLAG
 		printf("%x %d %d %d %d\n", inst.pc, inst.op, inst.dest_reg, inst.src1_reg, inst.src2_reg);
+#endif
+		tag += 1;
 	}
 
 	return(0);
