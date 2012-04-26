@@ -8,6 +8,11 @@
 #define OPTYPE1 1
 #define OPTYPE2 2
 
+#define READY 1
+#define NOT_READY 0
+
+#define MAX_TRACEFILE_SIZE 1<<20
+
 extern int S;
 extern int N;
 extern FILE *fp_trace;
@@ -20,11 +25,13 @@ typedef struct _inst_t {
 	int dest_reg;
 	int src1_reg;
 	int src2_reg;
+
+	unsigned int tag;
 }inst_t;
 
 extern inst_t inst;
-
-extern unsigned int tag;
+extern inst_t inst_stream[MAX_TRACEFILE_SIZE];
+extern unsigned int inst_count;
 
 #define IF 0
 #define ID 1
@@ -51,9 +58,18 @@ extern node_t *dispatch_list;
 extern node_t *issue_list;
 extern node_t *execute_list;
 
-extern int dispatch_iter;
-extern int issue_iter;
-extern int execute_iter;
+extern int dispatch_count;
+extern int issue_count;
+extern int execute_count;
+
+#define REGISTER_FILE_SIZE 128
+
+typedef struct _register_file_t {
+	int ready;
+	unsigned int tag_value;
+}register_file_t;
+
+extern register_file_t *register_file;
 
 extern void initialize_data_structs(int, int);
 

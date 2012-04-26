@@ -14,21 +14,27 @@ char trace_file[MAX_TRACEFILE_NAME_LEN];
 char trace_str[MAX_TRACESTR_LEN];
 
 inst_t inst;
-unsigned int tag=0;
+inst_t inst_stream[MAX_TRACEFILE_SIZE];
+unsigned int inst_count=0;
 
 node_t *fake_rob=0;
 node_t *dispatch_list=0;
 node_t *issue_list=0;
 node_t *execute_list=0;
 
-int dispatch_iter=0;
-int issue_iter=0;
-int execute_iter=0;
+int dispatch_count=0;
+int issue_count=0;
+int execute_count=0;
+
+register_file_t *register_file=0;
 
 void print_usage();
 
 int main(int argc, char *argv[])
 {
+
+	int i=0;
+
 	if (argc != 4) {
 		printf("Invalid Number of arguments!\n");
 		print_usage();
@@ -56,9 +62,23 @@ int main(int argc, char *argv[])
 #ifdef DEBUG_FLAG
 		printf("%x %d %d %d %d\n", inst.pc, inst.op, inst.dest_reg, inst.src1_reg, inst.src2_reg);
 #endif
-		tag += 1;
+		inst_stream[inst_count].pc = inst.pc;
+		inst_stream[inst_count].op = inst.op;
+		inst_stream[inst_count].dest_reg = inst.dest_reg;
+		inst_stream[inst_count].src1_reg = inst.src1_reg;
+		inst_stream[inst_count].src2_reg = inst.src2_reg;
+		inst_stream[inst_count].tag = inst_count;
+
+		inst_count += 1;
 	}
 
+	i = 0;
+
+#ifdef DEBUG_FLAG
+	for (i=0 ; i < inst_count ; i++) {
+		printf("%x %d %d %d %d\n", inst_stream[i].pc, inst_stream[i].op, inst_stream[i].dest_reg, inst_stream[i].src1_reg, inst_stream[i].src2_reg);
+	}
+#endif
 	return(0);
 }
 
