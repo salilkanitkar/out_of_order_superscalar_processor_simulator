@@ -28,12 +28,14 @@ int execute_count=0;
 
 register_file_t *register_file=0;
 
+unsigned int proc_cycle=0;
+
 void print_usage();
 
 int main(int argc, char *argv[])
 {
 
-	int i=0;
+	int i=0, j=0;
 
 	if (argc != 4) {
 		printf("Invalid Number of arguments!\n");
@@ -79,6 +81,30 @@ int main(int argc, char *argv[])
 		printf("%x %d %d %d %d\n", inst_stream[i].pc, inst_stream[i].op, inst_stream[i].dest_reg, inst_stream[i].src1_reg, inst_stream[i].src2_reg);
 	}
 #endif
+	i = 0;
+	do {
+		/* FETCH */
+		/* Keep on fetching new instructions until ALL of the following is TRUE - 
+		   1) Instruction Stream is no exhausted.
+		   2) The fetch bandwidth (N) is not exhausted.
+		   3) The dispatch_list is not full.
+		*/
+		j = 0;
+		while (i < inst_count && j < N && dispatch_count < (2*N)) {
+			do_fetch(&inst_stream[i]);
+			i += 1;
+			j += 1;
+		}
+
+	//} while (advance_cycle(&i));
+	} while (i < inst_count); 
+
+//#ifdef DEBUG_FLAG
+	print_fake_rob();
+	print_dispatch_list();
+	print_issue_list();
+	print_execute_list();
+//#endif
 	return(0);
 }
 

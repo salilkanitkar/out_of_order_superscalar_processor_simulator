@@ -140,3 +140,128 @@ void initialize_data_structs(int S, int N)
 	}
 }
 
+int advance_cycle(int *i)
+{
+	/* Advance the Processor Cycle. This models a clock-tick event. */
+	proc_cycle += 1;
+
+	/* When fake_rob is empty AND trace is depleted, return FALSE else return TRUE. */
+	if (*i >= inst_count && fake_rob->next == fake_rob) {
+		return FALSE;
+	} else {
+		(*i) += 1;
+		return TRUE;
+	}
+}
+
+void do_fetch(inst_t *inst)
+{
+	node_t *p, *tmp;
+
+	/* Put the new instruction in fake_rob. */
+	p = (node_t *)malloc(sizeof(node_t) * 1);
+	if (!p) {
+		printf("Memory Allocation Failed!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	p->pc = inst->pc;
+	p->op = inst->op;
+	p->dest_reg = inst->dest_reg;
+	p->src1_reg = inst->src1_reg;
+	p->src2_reg = inst->src2_reg;
+	p->tag = inst->tag;
+	p->pipeline_stage = IF;
+
+	tmp = fake_rob;
+	while (tmp->next != fake_rob) {
+		tmp = tmp->next;
+	}
+
+	tmp->next = p;
+	p->next = fake_rob;
+		
+	/* Add instruction to the dispatch_list. */
+	p = (node_t *)malloc(sizeof(node_t) * 1);
+	if (!p) {
+		printf("Memory allocation Failed!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	p->pc = inst->pc;
+	p->op = inst->op;
+	p->dest_reg = inst->dest_reg;
+	p->src1_reg = inst->src1_reg;
+	p->src2_reg = inst->src2_reg;
+	p->tag = inst->tag;
+	p->pipeline_stage = IF;
+
+	tmp = dispatch_list;
+	while (tmp->next != dispatch_list) {
+		tmp = tmp->next;
+	}
+	tmp->next = p;
+	p->next = dispatch_list;
+		
+	/* Reserve the dispatch Queue entry. */
+	dispatch_count += 1;
+
+}
+
+void print_fake_rob()
+{
+	node_t *p;
+
+	printf("Fake Rob:->\n");
+	p = fake_rob;
+	while (p->next != fake_rob) {
+		p = p->next;
+		printf("%x %d %d %d %d %d %d\n", p->pc, p->op, p->dest_reg, p->src1_reg, p->src2_reg, p->pipeline_stage, p->tag);
+	}
+	printf("\n");
+}
+
+void print_dispatch_list()
+{
+	node_t *p;
+
+	printf("Dispatch List:->\n");
+	p = dispatch_list;
+	while (p->next != dispatch_list) {
+		p = p->next;
+		printf("%x %d %d %d %d %d %d\n", p->pc, p->op, p->dest_reg, p->src1_reg, p->src2_reg, p->pipeline_stage, p->tag);
+	}
+	printf("\n");
+
+}
+
+void print_issue_list()
+{
+	node_t *p;
+
+	printf("Issue List:->\n");
+	p = issue_list;
+	while (p->next != issue_list) {
+		p = p->next;
+		printf("%x %d %d %d %d %d %d\n", p->pc, p->op, p->dest_reg, p->src1_reg, p->src2_reg, p->pipeline_stage, p->tag);
+	}
+	printf("\n");
+
+}
+
+void print_execute_list()
+{
+	node_t *p;
+
+	printf("Execute List:->\n");
+	p = execute_list;
+	while (p->next != execute_list) {
+		p = p->next;
+		printf("%x %d %d %d %d %d %d\n", p->pc, p->op, p->dest_reg, p->src1_reg, p->src2_reg, p->pipeline_stage, p->tag);
+	}
+	printf("\n");
+
+}
+

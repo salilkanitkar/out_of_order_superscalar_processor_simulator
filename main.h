@@ -1,5 +1,5 @@
-#define TRUE 0
-#define FALSE 1
+#define TRUE 1
+#define FALSE 0
 
 #define MAX_TRACEFILE_NAME_LEN 200
 #define MAX_TRACESTR_LEN 100
@@ -72,4 +72,14 @@ typedef struct _register_file_t {
 extern register_file_t *register_file;
 
 extern void initialize_data_structs(int, int);
+
+extern unsigned int proc_cycle;
+
+extern int advance_cycle(int *);
+extern void do_fetch(inst_t *);
+
+extern void print_fake_rob();
+extern void print_dispatch_list();
+extern void print_issue_list();
+extern void print_execute_list();
 
