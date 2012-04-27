@@ -26,6 +26,8 @@ void init_node(node_t *node)
 	node->dest_val = node->dest_reg;
 	node->src1_val = node->src1_reg;
 	node->src2_val = node->src2_reg;
+
+	node->op_latency = -1;
 }
 
 void copy_node(node_t *dest, node_t *src)
@@ -48,6 +50,8 @@ void copy_node(node_t *dest, node_t *src)
 	dest->dest_val = src->dest_val;
 	dest->src1_val = src->src1_val;
 	dest->src2_val = src->src2_val;
+
+	dest->op_latency = src->op_latency;
 }
 
 void initialize_data_structs(int S, int N)
@@ -181,9 +185,17 @@ int advance_cycle(int *i)
 	/* When fake_rob is empty AND trace is depleted, return FALSE else return TRUE. */
 	if (*i >= inst_count && fake_rob->next == fake_rob) {
 		return FALSE;
-	} else {
+	} else if (*i < inst_count && fake_rob->next == fake_rob){
 		(*i) += 1;
 		return TRUE;
+	} else if (*i >= inst_count && fake_rob->next != fake_rob) {
+		return TRUE;
+	} else if (*i < inst_count && fake_rob->next != fake_rob) {
+		(*i) += 1;
+		return TRUE;
+	}
+	else {
+		return FALSE;
 	}
 }
 
@@ -211,6 +223,7 @@ void do_fetch(inst_t *inst)
 	p->dest_val = p->dest_reg;
 	p->src1_val = p->src1_reg;
 	p->src2_val = p->src2_reg;
+	p->op_latency = inst->op_latency;
 	p->pipeline_stage = IF;
 
 	tmp = fake_rob;
@@ -241,6 +254,7 @@ void do_fetch(inst_t *inst)
 	p->dest_val = p->dest_reg;
 	p->src1_val = p->src1_reg;
 	p->src2_val = p->src2_reg;
+	p->op_latency = inst->op_latency;
 	p->pipeline_stage = IF;
 
 	tmp = dispatch_list;
@@ -255,7 +269,7 @@ void do_fetch(inst_t *inst)
 
 }
 
-void dispatch(int index)
+void dispatch()
 {
 	int i=0, temp_count=0;
 
@@ -348,7 +362,7 @@ void dispatch(int index)
 		}
 		/* Rename Destination Operand */
 		register_file[p->dest_reg].ready = NOT_READY;
-		register_file[p->dest_reg].tag_value = index;
+		register_file[p->dest_reg].tag_value = p->tag;
 
 		i += 1;
 	}
@@ -373,6 +387,85 @@ void dispatch(int index)
 		p = p->next;
 	}
 
+}
+
+void issue()
+{
+	int i=0, temp_count=0;
+
+	node_t *temp_list=0;
+	node_t *p=0, *q=0, *tmp=0;
+
+	/* From the issue_list, construct a temporary list of instructions whose operands are ready.
+	*/
+	temp_list = (node_t *)malloc(sizeof(node_t) * issue_count);
+	if (!temp_list) {
+		printf("Memory allocation failed!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < issue_count ; i++) {
+		init_node(&temp_list[i]);
+	}
+
+	tmp = issue_list->next;
+	temp_count = 0;
+
+	for (i=0 ; i < issue_count ; i++) {
+		if (tmp->pipeline_stage == IS && tmp->src1_ready == READY && tmp->src2_ready == READY) {
+			copy_node(&temp_list[temp_count], tmp);
+			temp_count += 1;
+		}
+		tmp = tmp->next;
+	}
+
+	/* Sort the temp_list in ascending order of tags. */
+	sort_list(temp_list, temp_count);
+
+	i = 0;
+	while (i < temp_count && execute_count < N) {
+		/* Remove the instruction from issue_list. */
+		p = issue_list->next;
+		q = NULL;
+		while (p != issue_list) {
+			if (p->tag == temp_list[i].tag) {
+				if (!q) {
+					issue_list->next = p->next;
+				} else {
+					q->next = p->next;
+				}
+				break;
+			}
+			q = p;
+			p = p->next;
+		}
+
+		/* Add the removed entry to execute_list. */
+		tmp = execute_list;
+		while (tmp->next != execute_list)
+			tmp = tmp->next;
+		tmp->next = p;
+		p->next = execute_list;
+
+		/* Reserve a Functional Unit. */
+		execute_count += 1;
+		/* Free a Scheduling Queue Entry. */
+		issue_count -= 1;
+
+		/* Change pipeline stage from ID to IS. */
+		p->pipeline_stage = EX;
+		tmp = fake_rob->next;
+		while (tmp != fake_rob) {
+			if (tmp->tag == p->tag) {
+				tmp->pipeline_stage = EX;
+				break;
+			}
+			tmp = tmp->next;
+		}
+
+		i += 1;
+	}
 }
 
 void print_fake_rob()

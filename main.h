@@ -8,6 +8,10 @@
 #define OPTYPE1 1
 #define OPTYPE2 2
 
+#define OPTYPE0_LATENCY 1
+#define OPTYPE1_LATENCY 2
+#define OPTYPE2_LATENCY 5
+
 #define READY 1
 #define NOT_READY 0
 
@@ -25,6 +29,8 @@ typedef struct _inst_t {
 	int dest_reg;
 	int src1_reg;
 	int src2_reg;
+
+	int op_latency;
 
 	unsigned int tag;
 }inst_t;
@@ -56,6 +62,8 @@ typedef struct _node_t {
 	int src1_val;
 	int src2_val;
 
+	int op_latency;
+
 	unsigned int tag;
 
 	struct _node_t *next;
@@ -85,7 +93,8 @@ extern unsigned int proc_cycle;
 
 extern int advance_cycle(int *);
 extern void do_fetch(inst_t *);
-extern void dispatch(int);
+extern void dispatch();
+extern void issue();
 
 extern void print_fake_rob();
 extern void print_dispatch_list();

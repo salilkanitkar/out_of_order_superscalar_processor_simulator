@@ -71,6 +71,14 @@ int main(int argc, char *argv[])
 		inst_stream[inst_count].src2_reg = inst.src2_reg;
 		inst_stream[inst_count].tag = inst_count;
 
+		if (inst_stream[inst_count].op == OPTYPE0) {
+			inst_stream[inst_count].op_latency = OPTYPE0_LATENCY;
+		} else if (inst_stream[inst_count].op == OPTYPE1) {
+			inst_stream[inst_count].op_latency = OPTYPE1_LATENCY;
+		} else if (inst_stream[inst_count].op == OPTYPE2) {
+			inst_stream[inst_count].op_latency = OPTYPE2_LATENCY;
+		}
+
 		inst_count += 1;
 	}
 
@@ -84,8 +92,11 @@ int main(int argc, char *argv[])
 	i = 0;
 	do {
 
+		/* ISSUE */
+		issue();
+
 		/* DISPATCH */
-		dispatch(i);
+		dispatch();
 
 		/* FETCH */
 		/* Keep on fetching new instructions until ALL of the following is TRUE - 
