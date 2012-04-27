@@ -6,6 +6,50 @@
 
 #include "main.h"
 
+void init_node(node_t *node)
+{
+	node->pc = -1;
+	node->op = -1;
+
+	node->pipeline_stage = -1;
+
+	node->dest_reg = -1;
+	node->src1_reg = -1;
+	node->src2_reg = -1;
+
+	node->tag = -1;
+
+	node->dest_ready = NOT_READY;
+	node->src1_ready = NOT_READY;
+	node->src2_ready = NOT_READY;
+
+	node->dest_val = node->dest_reg;
+	node->src1_val = node->src1_reg;
+	node->src2_val = node->src2_reg;
+}
+
+void copy_node(node_t *dest, node_t *src)
+{
+	dest->pc = src->pc;
+	dest->op = src->op;
+
+	dest->pipeline_stage = src->pipeline_stage;
+
+	dest->dest_reg = src->dest_reg;
+	dest->src1_reg = src->src1_reg;
+	dest->src2_reg = src->src2_reg;
+
+	dest->tag = src->tag;
+
+	dest->dest_ready = src->dest_ready;
+	dest->src1_ready = src->src1_ready;
+	dest->src2_ready = src->src2_ready;
+
+	dest->dest_val = src->dest_val;
+	dest->src1_val = src->src1_val;
+	dest->src2_val = src->src2_val;
+}
+
 void initialize_data_structs(int S, int N)
 {
 	int i;
@@ -20,14 +64,7 @@ void initialize_data_structs(int S, int N)
 		exit(1);
 	}
 
-	fake_rob->pc = -1;
-	fake_rob->op = -1;
-	fake_rob->pipeline_stage = -1;
-	fake_rob->dest_reg = -1;
-	fake_rob->src1_reg = -1;
-	fake_rob->src2_reg = -1;
-	fake_rob->tag = -1;
-
+	init_node(fake_rob);
 	fake_rob->next = fake_rob;
 
 	/* Initilize and allocate Dispatch_List.
@@ -43,14 +80,7 @@ void initialize_data_structs(int S, int N)
 		exit(1);
 	}
 
-	dispatch_list->pc = -1;
-	dispatch_list->op = -1;
-	dispatch_list->pipeline_stage = -1;
-	dispatch_list->dest_reg = -1;
-	dispatch_list->src1_reg = -1;
-	dispatch_list->src2_reg = -1;
-	dispatch_list->tag = -1;
-
+	init_node(dispatch_list);
 	dispatch_list->next = dispatch_list;
 
 	dispatch_count = 0;
@@ -69,14 +99,7 @@ void initialize_data_structs(int S, int N)
 		exit(1);
 	}
 
-	issue_list->pc = -1;
-	issue_list->op = -1;
-	issue_list->pipeline_stage = -1;
-	issue_list->dest_reg = -1;
-	issue_list->src1_reg = -1;
-	issue_list->src2_reg = -1;
-	issue_list->tag = -1;
-
+	init_node(issue_list);
 	issue_list->next = issue_list;
 
 	issue_count = 0;
@@ -95,14 +118,7 @@ void initialize_data_structs(int S, int N)
 		exit(1);
 	}
 
-	execute_list->pc = -1;
-	execute_list->op = -1;
-	execute_list->pipeline_stage = -1;
-	execute_list->dest_reg = -1;
-	execute_list->src1_reg = -1;
-	execute_list->src2_reg = -1;
-	execute_list->tag = -1;
-
+	init_node(execute_list);
 	execute_list->next = execute_list;
 
 	execute_count = 0;
@@ -140,6 +156,23 @@ void initialize_data_structs(int S, int N)
 	}
 }
 
+void sort_list(node_t *node_list, int count)
+{
+	/* Insertion Sort - Ascending Order based on tag. */
+	int i=0, j=0;
+	node_t x;
+
+	for (j=1 ; j < count ; j++) {
+		copy_node(&x, &node_list[j]);
+		i = j - 1;
+		while (i >= 0 && node_list[i].tag > x.tag) {
+			copy_node(&node_list[i+1], &node_list[i]);
+			i -= 1;
+		}
+		copy_node(&node_list[i+1], &x);
+	}
+}
+
 int advance_cycle(int *i)
 {
 	/* Advance the Processor Cycle. This models a clock-tick event. */
@@ -172,6 +205,12 @@ void do_fetch(inst_t *inst)
 	p->src1_reg = inst->src1_reg;
 	p->src2_reg = inst->src2_reg;
 	p->tag = inst->tag;
+	p->dest_ready = NOT_READY;
+	p->src1_ready = NOT_READY;
+	p->src2_ready = NOT_READY;
+	p->dest_val = p->dest_reg;
+	p->src1_val = p->src1_reg;
+	p->src2_val = p->src2_reg;
 	p->pipeline_stage = IF;
 
 	tmp = fake_rob;
@@ -196,6 +235,12 @@ void do_fetch(inst_t *inst)
 	p->src1_reg = inst->src1_reg;
 	p->src2_reg = inst->src2_reg;
 	p->tag = inst->tag;
+	p->dest_ready = NOT_READY;
+	p->src1_ready = NOT_READY;
+	p->src2_ready = NOT_READY;
+	p->dest_val = p->dest_reg;
+	p->src1_val = p->src1_reg;
+	p->src2_val = p->src2_reg;
 	p->pipeline_stage = IF;
 
 	tmp = dispatch_list;
@@ -207,6 +252,126 @@ void do_fetch(inst_t *inst)
 		
 	/* Reserve the dispatch Queue entry. */
 	dispatch_count += 1;
+
+}
+
+void dispatch(int index)
+{
+	int i=0, temp_count=0;
+
+	node_t *temp_list=0;
+	node_t *p=0, *q=0, *tmp=0;
+
+	/* From the dispatch_list, construct a temporary list of instructions in the ID state.
+	*/
+	temp_list = (node_t *)malloc(sizeof(node_t) * dispatch_count);
+	if (!temp_list) {
+		printf("Memory allocation failed!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < dispatch_count ; i++) {
+		init_node(&temp_list[i]);
+	}
+
+	tmp = dispatch_list->next;
+	temp_count = 0;
+
+	for (i=0 ; i < dispatch_count ; i++) {
+		if (tmp->pipeline_stage == ID) {
+			copy_node(&temp_list[temp_count], tmp);
+			temp_count += 1;
+		}
+		tmp = tmp->next;
+	}
+
+	/* Sort the temp_list in ascending order of tags. */
+	sort_list(temp_list, temp_count);
+
+	i = 0;
+	while (i < temp_count && issue_count < S) {
+		/* Remove the instruction from dispatch_list. */
+		p = dispatch_list->next;
+		q = NULL;
+		while (p != dispatch_list) {
+			if (p->tag == temp_list[i].tag) {
+				if (!q) {
+					dispatch_list->next = p->next;
+				} else {
+					q->next = p->next;
+				}
+				break;
+			}
+			q = p;
+			p = p->next;
+		}
+
+		/* Add the removed entry to issue_list. */
+		tmp = issue_list;
+		while (tmp->next != issue_list)
+			tmp = tmp->next;
+		tmp->next = p;
+		p->next = issue_list;
+
+		/* Reserve a Schedule Queue Entry. */
+		issue_count += 1;
+		/* Free a Dispatch Queue Entry. */
+		dispatch_count -= 1;
+
+		/* Change pipeline stage from ID to IS. */
+		p->pipeline_stage = IS;
+		tmp = fake_rob->next;
+		while (tmp != fake_rob) {
+			if (tmp->tag == p->tag) {
+				tmp->pipeline_stage = IS;
+				break;
+			}
+			tmp = tmp->next;
+		}
+
+		/* Rename Source Operand1 */
+		if (register_file[p->src1_reg].ready == READY) {
+			p->src1_ready = READY;
+			p->src1_val = register_file[p->src1_reg].tag_value;
+		} else if (register_file[p->src1_reg].ready == NOT_READY){
+			p->src1_ready = NOT_READY;
+			p->src1_val = register_file[p->src1_reg].tag_value;
+		}
+		/* Rename Source Operand2 */
+		if (register_file[p->src2_reg].ready == READY) {
+			p->src2_ready = READY;
+			p->src2_val = register_file[p->src2_reg].tag_value;
+		} else if (register_file[p->src2_reg].ready == NOT_READY){
+			p->src2_ready = NOT_READY;
+			p->src2_val = register_file[p->src2_reg].tag_value;
+		}
+		/* Rename Destination Operand */
+		register_file[p->dest_reg].ready = NOT_READY;
+		register_file[p->dest_reg].tag_value = index;
+
+		i += 1;
+	}
+
+	/* For instructions in the dispatch_list that are in the IF stage, unconditionally transition to ID stage.
+	   This models the one-cycle latency of the IF stage.
+	*/
+	p = dispatch_list->next;
+	while (p != dispatch_list) {
+		if (p->pipeline_stage == IF) {
+			p->pipeline_stage = ID;
+			tmp = fake_rob->next;
+			while (tmp != fake_rob) {
+				if (tmp->tag == p->tag) {
+					tmp->pipeline_stage = ID;
+					p = p->next;
+					continue;
+				}
+				tmp = tmp->next;
+			}
+		}
+		p = p->next;
+	}
 
 }
 

@@ -48,6 +48,14 @@ typedef struct _node_t {
 	int src1_reg;
 	int src2_reg;
 
+	int dest_ready;
+	int src1_ready;
+	int src2_ready;
+
+	int dest_val;
+	int src1_val;
+	int src2_val;
+
 	unsigned int tag;
 
 	struct _node_t *next;
@@ -77,6 +85,7 @@ extern unsigned int proc_cycle;
 
 extern int advance_cycle(int *);
 extern void do_fetch(inst_t *);
+extern void dispatch(int);
 
 extern void print_fake_rob();
 extern void print_dispatch_list();

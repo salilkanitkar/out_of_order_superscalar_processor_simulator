@@ -83,6 +83,10 @@ int main(int argc, char *argv[])
 #endif
 	i = 0;
 	do {
+
+		/* DISPATCH */
+		dispatch(i);
+
 		/* FETCH */
 		/* Keep on fetching new instructions until ALL of the following is TRUE - 
 		   1) Instruction Stream is no exhausted.
