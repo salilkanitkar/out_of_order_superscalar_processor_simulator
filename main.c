@@ -92,11 +92,49 @@ int main(int argc, char *argv[])
 	i = 0;
 	do {
 
+		/* FAKE_RETIRE */
+		fake_retire();
+//#ifdef DEBUG_FLAG
+		printf("Cycle %d: FakeRetire Done.\n", proc_cycle);
+		print_fake_rob();
+		print_dispatch_list();
+		print_issue_list();
+		print_execute_list();
+		getchar();
+//#endif
+
+		/* EXECUTE */
+		execute();
+//#ifdef DEBUG_FLAG
+		printf("Cycle %d: Execute Done.\n", proc_cycle);
+		print_fake_rob();
+		print_dispatch_list();
+		print_issue_list();
+		print_execute_list();
+		getchar();
+//#endif
+
 		/* ISSUE */
 		issue();
+//#ifdef DEBUG_FLAG
+		printf("Cycle %d: Issue Done.\n", proc_cycle);
+		print_fake_rob();
+		print_dispatch_list();
+		print_issue_list();
+		print_execute_list();
+		getchar();
+//#endif
 
 		/* DISPATCH */
 		dispatch();
+//#ifdef DEBUG_FLAG
+		printf("Cycle %d: Dispatch Done.\n", proc_cycle);
+		print_fake_rob();
+		print_dispatch_list();
+		print_issue_list();
+		print_execute_list();
+		getchar();
+//#endif
 
 		/* FETCH */
 		/* Keep on fetching new instructions until ALL of the following is TRUE - 
@@ -110,16 +148,24 @@ int main(int argc, char *argv[])
 			i += 1;
 			j += 1;
 		}
-
-	//} while (advance_cycle(&i));
-	} while (i < inst_count); 
-
 //#ifdef DEBUG_FLAG
+		printf("Cycle %d: Fetch Done.\n", proc_cycle);
+		print_fake_rob();
+		print_dispatch_list();
+		print_issue_list();
+		print_execute_list();
+		getchar();
+//#endif
+
+	} while (advance_cycle(&i));
+	//} while (i < inst_count); 
+
+#ifdef DEBUG_FLAG
 	print_fake_rob();
 	print_dispatch_list();
 	print_issue_list();
 	print_execute_list();
-//#endif
+#endif
 	return(0);
 }
 

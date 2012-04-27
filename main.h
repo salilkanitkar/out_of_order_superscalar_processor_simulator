@@ -87,6 +87,21 @@ typedef struct _register_file_t {
 
 extern register_file_t *register_file;
 
+typedef struct _cycle_num_info_t {
+	int start_cycle;
+	int duration;
+}cycle_num_info_t;
+
+typedef struct _timing_info_t {
+	cycle_num_info_t fetch;
+	cycle_num_info_t dispatch;
+	cycle_num_info_t issue;
+	cycle_num_info_t execute;
+	cycle_num_info_t writeback;
+}timing_info_t;
+
+extern timing_info_t timing_info[MAX_TRACEFILE_SIZE];
+
 extern void initialize_data_structs(int, int);
 
 extern unsigned int proc_cycle;
@@ -95,6 +110,8 @@ extern int advance_cycle(int *);
 extern void do_fetch(inst_t *);
 extern void dispatch();
 extern void issue();
+extern void execute();
+extern void fake_retire();
 
 extern void print_fake_rob();
 extern void print_dispatch_list();

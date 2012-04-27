@@ -186,15 +186,14 @@ int advance_cycle(int *i)
 	if (*i >= inst_count && fake_rob->next == fake_rob) {
 		return FALSE;
 	} else if (*i < inst_count && fake_rob->next == fake_rob){
-		(*i) += 1;
+		//(*i) += 1;
 		return TRUE;
 	} else if (*i >= inst_count && fake_rob->next != fake_rob) {
 		return TRUE;
 	} else if (*i < inst_count && fake_rob->next != fake_rob) {
-		(*i) += 1;
+		//(*i) += 1;
 		return TRUE;
-	}
-	else {
+	} else {
 		return FALSE;
 	}
 }
@@ -345,24 +344,41 @@ void dispatch()
 		}
 
 		/* Rename Source Operand1 */
-		if (register_file[p->src1_reg].ready == READY) {
+		if (p->src1_reg == -1) {
 			p->src1_ready = READY;
-			p->src1_val = register_file[p->src1_reg].tag_value;
-		} else if (register_file[p->src1_reg].ready == NOT_READY){
-			p->src1_ready = NOT_READY;
-			p->src1_val = register_file[p->src1_reg].tag_value;
+			p->src1_val = -1;
+		} else {
+			if (register_file[p->src1_reg].ready == READY) {
+				p->src1_ready = READY;
+				p->src1_val = register_file[p->src1_reg].tag_value;
+			} else if (register_file[p->src1_reg].ready == NOT_READY){
+				p->src1_ready = NOT_READY;
+				p->src1_val = register_file[p->src1_reg].tag_value;
+			}
 		}
+
 		/* Rename Source Operand2 */
-		if (register_file[p->src2_reg].ready == READY) {
+		if (p->src2_reg == -1) {
 			p->src2_ready = READY;
-			p->src2_val = register_file[p->src2_reg].tag_value;
-		} else if (register_file[p->src2_reg].ready == NOT_READY){
-			p->src2_ready = NOT_READY;
-			p->src2_val = register_file[p->src2_reg].tag_value;
+			p->src2_val = -1;
+		} else {
+			if (register_file[p->src2_reg].ready == READY) {
+				p->src2_ready = READY;
+				p->src2_val = register_file[p->src2_reg].tag_value;
+			} else if (register_file[p->src2_reg].ready == NOT_READY){
+				p->src2_ready = NOT_READY;
+				p->src2_val = register_file[p->src2_reg].tag_value;
+			}
 		}
+
 		/* Rename Destination Operand */
-		register_file[p->dest_reg].ready = NOT_READY;
-		register_file[p->dest_reg].tag_value = p->tag;
+		if (p->dest_reg == -1) {
+			p->dest_ready = READY;
+			p->dest_val = -1;
+		} else {
+			register_file[p->dest_reg].ready = NOT_READY;
+			register_file[p->dest_reg].tag_value = p->tag;
+		}
 
 		i += 1;
 	}
@@ -466,6 +482,98 @@ void issue()
 
 		i += 1;
 	}
+}
+
+void execute()
+{
+	node_t *p=0, *q=0, *tmp=0;
+
+	/* Every instruction in the execute_list will do execution this cycle. 
+	   Model this behavior by decrementing op_latency by 1.
+	*/
+	p = execute_list->next;
+	while (p != execute_list) {
+
+		p->op_latency -= 1;
+
+		tmp = fake_rob->next;
+		while (tmp != fake_rob) {
+			if (tmp->tag == p->tag) {
+				tmp->op_latency -= 1;
+				break;
+			}
+			tmp = tmp->next;
+		}
+
+		p = p->next;
+	}
+
+	/* Remove those instructions from the execute_list that are finishing this cycle. 
+	   Set the corresponding pipeline_stage in fake_rob to WB.
+	*/
+	p = execute_list->next;
+	q = NULL;
+	while (p != execute_list) {
+		if (p->op_latency == 0) {
+			/* Transition to WB stage. It will be reflected in the fake_rob. */
+			tmp = fake_rob->next;
+			while (tmp != fake_rob) {
+				if (tmp->tag == p->tag) {
+					tmp->pipeline_stage = WB;
+				}
+				tmp = tmp->next;
+			}
+			/* Remove this instruction from the execute_list. 
+			   This models freeing up a Functional Unit.
+			*/
+			if (!q) {
+				execute_list->next = p->next;
+			} else {
+				q->next = p->next;
+			}
+			p = p->next;
+			execute_count -= 1;
+
+			/* Update the Register File to reflect Destination Reg being ready. */
+			register_file[p->dest_reg].ready = READY;
+			register_file[p->dest_reg].tag_value = p->dest_reg;
+
+			tmp = issue_list->next;
+			while (tmp != issue_list) {
+				if (tmp->src1_ready == NOT_READY && tmp->src1_val == p->tag) {
+					tmp->src1_ready = READY;
+					tmp->src1_val = register_file[p->dest_reg].tag_value;
+				} else if (tmp->src2_ready == NOT_READY && tmp->src2_val == p->tag) {
+					tmp->src2_ready = READY;
+					tmp->src2_val = register_file[p->dest_reg].tag_value;
+				}
+				tmp = tmp->next;
+			}
+
+			continue;
+		}
+		q = p;
+		p = p->next;
+	}
+
+}
+
+void fake_retire()
+{
+
+	node_t *p;
+
+	p = fake_rob->next;
+
+	while (p != fake_rob) {
+		if (p->pipeline_stage == WB) {
+			fake_rob->next = p->next;
+			p = p->next;
+		} else if (p->pipeline_stage != WB) {
+			break;
+		}
+	}
+
 }
 
 void print_fake_rob()
