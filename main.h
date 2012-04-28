@@ -76,10 +76,7 @@ extern node_t *execute_list;
 
 extern int dispatch_count;
 extern int issue_count;
-//extern int execute_count;
-extern int execute_count_op0;
-extern int execute_count_op1;
-extern int execute_count_op2;
+extern int execute_count;
 
 #define REGISTER_FILE_SIZE 128
 
@@ -105,12 +102,6 @@ typedef struct _timing_info_t {
 }timing_info_t;
 
 extern timing_info_t *timing_info;
-
-extern int *execute_arr;
-extern int execute_arr_len;
-extern int count_op0;
-extern int count_op1;
-extern int count_op2;
 
 extern void initialize_data_structs(int, int);
 extern void initialize_timing_info(int);

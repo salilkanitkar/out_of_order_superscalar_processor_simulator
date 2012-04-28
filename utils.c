@@ -125,10 +125,6 @@ void initialize_data_structs(int S, int N)
 	init_node(execute_list);
 	execute_list->next = execute_list;
 
-	execute_count_op0 = 0;
-	execute_count_op1 = 0;
-	execute_count_op2 = 0;
-
 	/* The Register File is modeled by register_file struct.
 	   The REGISTER_FILE_SIZE determines the size of the register_file.
 	   The tag_value field models both the tag or value held in that register -  as per Tomasulo's Algorithm.
@@ -214,10 +210,6 @@ void sort_list(node_t *node_list, int count)
 
 int advance_cycle(int *i)
 {
-	execute_count_op0 -= count_op0;
-	execute_count_op1 -= count_op1;
-	execute_count_op2 -= count_op2;
-
 	/* Advance the Processor Cycle. This models a clock-tick event. */
 	proc_cycle += 1;
 
@@ -225,12 +217,10 @@ int advance_cycle(int *i)
 	if (*i >= inst_count && fake_rob->next == fake_rob) {
 		return FALSE;
 	} else if (*i < inst_count && fake_rob->next == fake_rob){
-		//(*i) += 1;
 		return TRUE;
 	} else if (*i >= inst_count && fake_rob->next != fake_rob) {
 		return TRUE;
 	} else if (*i < inst_count && fake_rob->next != fake_rob) {
-		//(*i) += 1;
 		return TRUE;
 	} else {
 		return FALSE;
@@ -424,11 +414,6 @@ void dispatch()
 			register_file[p->dest_reg].tag_value = p->tag;
 		}
 
-		/*if (p->tag == 40 || p->tag == 39) {
-			printf("SSK: %d %d\n", register_file[p->src2_reg].ready, register_file[p->src2_reg].tag_value);
-			printf("SSK: %d %d\n", register_file[3].ready, register_file[3].tag_value);
-			printf("SSK: %d %d:%d %d:%d %d:%d\n", p->tag, p->src1_ready, p->src1_val, p->src2_ready, p->src2_val, p->dest_ready, p->dest_val);
-		}*/
 		i += 1;
 	}
 
@@ -492,7 +477,8 @@ void issue()
 	sort_list(temp_list, temp_count);
 
 	i = 0;
-	while (i < temp_count && execute_count_op0 < (N) && execute_count_op1 < (2*N) && execute_count_op2 < (5*N)) {
+	execute_count = 0;
+	while (i < temp_count && execute_count < N) {
 		/* Remove the instruction from issue_list. */
 		p = issue_list->next;
 		q = NULL;
@@ -516,14 +502,7 @@ void issue()
 		tmp->next = p;
 		p->next = execute_list;
 
-		/* Reserve a Functional Unit. */
-		if (p->op == OPTYPE0) {
-			execute_count_op0 += 1;
-		} else if (p->op == OPTYPE1) {
-			execute_count_op1 += 1;
-		} else if (p->op == OPTYPE2) {
-			execute_count_op2 += 1;
-		}
+		execute_count += 1;
 		/* Free a Scheduling Queue Entry. */
 		issue_count -= 1;
 
@@ -550,8 +529,26 @@ void issue()
 void execute()
 {
 	node_t *p=0, *q=0, *tmp=0;
-	count_op0=0; count_op1=0; count_op2=0;
 
+	/* Every instruction in the execute_list will do execution this cycle. 
+	   Model this behavior by decrementing op_latency by 1.
+	*/
+	p = execute_list->next;
+	while (p != execute_list) {
+
+		p->op_latency -= 1;
+
+		tmp = fake_rob->next;
+		while (tmp != fake_rob) {
+			if (tmp->tag == p->tag) {
+				tmp->op_latency -= 1;
+				break;
+			}
+			tmp = tmp->next;
+		}
+
+		p = p->next;
+	}
 
 	/* Remove those instructions from the execute_list that are finishing this cycle. 
 	   Set the corresponding pipeline_stage in fake_rob to WB.
@@ -583,16 +580,6 @@ void execute()
 			} else {
 				q->next = p->next;
 			}
-			if (p->op == OPTYPE0) {
-				//execute_count_op0 -= 1;
-				count_op0 += 1;
-			} else if (p->op == OPTYPE1) {
-				//execute_count_op1 -= 1;
-				count_op1 += 1;
-			} else if (p->op == OPTYPE2) {
-				//execute_count_op2 -= 1;
-				count_op2 += 1;
-			}
 
 			/* Update the Register File to reflect Destination Reg being ready. */
 			if (register_file[p->dest_reg].ready == NOT_READY && register_file[p->dest_reg].tag_value == p->tag) {
@@ -617,27 +604,6 @@ void execute()
 		q = p;
 		p = p->next;
 	}
-
-	/* Every instruction in the execute_list will do execution this cycle. 
-	   Model this behavior by decrementing op_latency by 1.
-	*/
-	p = execute_list->next;
-	while (p != execute_list) {
-
-		p->op_latency -= 1;
-
-		tmp = fake_rob->next;
-		while (tmp != fake_rob) {
-			if (tmp->tag == p->tag) {
-				tmp->op_latency -= 1;
-				break;
-			}
-			tmp = tmp->next;
-		}
-
-		p = p->next;
-	}
-
 }
 
 void fake_retire()

@@ -24,15 +24,7 @@ node_t *execute_list=0;
 
 int dispatch_count=0;
 int issue_count=0;
-//int execute_count=0;
-int execute_count_op0=0;
-int execute_count_op1=0;
-int execute_count_op2=0;
-int *execute_arr=0;
-int execute_arr_len=0;
-int count_op0=0;
-int count_op1=0;
-int count_op2=0;
+int execute_count=0;
 
 register_file_t *register_file=0;
 
@@ -40,6 +32,7 @@ unsigned int proc_cycle=0;
 timing_info_t *timing_info=0;
 
 void print_usage();
+void print_results();
 
 int main(int argc, char *argv[])
 {
@@ -81,14 +74,12 @@ int main(int argc, char *argv[])
 		inst_stream[inst_count].tag = inst_count;
 
 		if (inst_stream[inst_count].op == OPTYPE0) {
-			inst_stream[inst_count].op_latency = OPTYPE0_LATENCY-1;
+			inst_stream[inst_count].op_latency = OPTYPE0_LATENCY;
 		} else if (inst_stream[inst_count].op == OPTYPE1) {
-			inst_stream[inst_count].op_latency = OPTYPE1_LATENCY-1;
+			inst_stream[inst_count].op_latency = OPTYPE1_LATENCY;
 		} else if (inst_stream[inst_count].op == OPTYPE2) {
-			inst_stream[inst_count].op_latency = OPTYPE2_LATENCY-1;
+			inst_stream[inst_count].op_latency = OPTYPE2_LATENCY;
 		}
-
-		//timing_info[inst_count].tag = inst_count;
 
 		inst_count += 1;
 	}
@@ -179,6 +170,8 @@ int main(int argc, char *argv[])
 	print_issue_list();
 	print_execute_list();
 #endif
+
+	print_results();
 	return(0);
 }
 
@@ -190,5 +183,20 @@ void print_usage()
 	printf("S: The Scheduling Queue Size\n");
 	printf("N: The peak fetch, issue and disptach rate.\n");
 	printf("tracefile: Filename of the input trace\n\n");
+}
+
+void print_results()
+{
+	proc_cycle -= 1;
+	float ipc = ((float)inst_count) / ((float)proc_cycle);
+
+	printf("CONFIGURATION\n");
+	printf(" superscalar bandwidth (N) = %d\n", N);
+	printf(" dispatch queue size (2*N) = %d\n", 2*N);
+	printf(" schedule queue size (S)   = %d\n", S);
+	printf("RESULTS\n");
+	printf(" number of instructions = %d\n", inst_count);
+	printf(" number of cycles       = %d\n", proc_cycle);
+	printf(" IPC                    = %.2f\n", ipc);
 }
 
