@@ -125,7 +125,9 @@ void initialize_data_structs(int S, int N)
 	init_node(execute_list);
 	execute_list->next = execute_list;
 
-	execute_count = 0;
+	execute_count_op0 = 0;
+	execute_count_op1 = 0;
+	execute_count_op2 = 0;
 
 	/* The Register File is modeled by register_file struct.
 	   The REGISTER_FILE_SIZE determines the size of the register_file.
@@ -158,6 +160,39 @@ void initialize_data_structs(int S, int N)
 		inst_stream[i].src2_reg = -1;
 		inst_stream[i].tag = -1;
 	}
+
+}
+
+void initialize_timing_info(int inst_count)
+{
+	int i=0;
+	
+	timing_info = (timing_info_t *)malloc(sizeof(timing_info_t) * inst_count);
+	if (!timing_info) {
+		printf("Memory Allocation Failed!\n");
+		printf("Exiting...\n");
+		exit(1);
+	}
+
+	for (i=0 ; i < inst_count ; i++) {
+		timing_info[i].tag = i;
+
+		timing_info[i].fetch.start_cycle = -1;
+		timing_info[i].fetch.duration = -1;
+
+		timing_info[i].dispatch.start_cycle = -1;
+		timing_info[i].dispatch.duration = -1;
+
+		timing_info[i].issue.start_cycle = -1;
+		timing_info[i].issue.duration = -1;
+
+		timing_info[i].execute.start_cycle = -1;
+		timing_info[i].execute.duration = -1;
+
+		timing_info[i].writeback.start_cycle = -1;
+		timing_info[i].writeback.duration = -1;
+	
+	}
 }
 
 void sort_list(node_t *node_list, int count)
@@ -179,6 +214,10 @@ void sort_list(node_t *node_list, int count)
 
 int advance_cycle(int *i)
 {
+	execute_count_op0 -= count_op0;
+	execute_count_op1 -= count_op1;
+	execute_count_op2 -= count_op2;
+
 	/* Advance the Processor Cycle. This models a clock-tick event. */
 	proc_cycle += 1;
 
@@ -266,6 +305,8 @@ void do_fetch(inst_t *inst)
 	/* Reserve the dispatch Queue entry. */
 	dispatch_count += 1;
 
+	timing_info[inst->tag].fetch.start_cycle = proc_cycle;
+
 }
 
 void dispatch()
@@ -279,7 +320,7 @@ void dispatch()
 	*/
 	temp_list = (node_t *)malloc(sizeof(node_t) * dispatch_count);
 	if (!temp_list) {
-		printf("Memory allocation failed!\n");
+		printf("Memory allocation failed! 1\n");
 		printf("Exiting...\n");
 		exit(1);
 	}
@@ -343,6 +384,9 @@ void dispatch()
 			tmp = tmp->next;
 		}
 
+		timing_info[p->tag].dispatch.duration = proc_cycle - timing_info[p->tag].dispatch.start_cycle;
+		timing_info[p->tag].issue.start_cycle = proc_cycle;
+
 		/* Rename Source Operand1 */
 		if (p->src1_reg == -1) {
 			p->src1_ready = READY;
@@ -380,6 +424,11 @@ void dispatch()
 			register_file[p->dest_reg].tag_value = p->tag;
 		}
 
+		/*if (p->tag == 40 || p->tag == 39) {
+			printf("SSK: %d %d\n", register_file[p->src2_reg].ready, register_file[p->src2_reg].tag_value);
+			printf("SSK: %d %d\n", register_file[3].ready, register_file[3].tag_value);
+			printf("SSK: %d %d:%d %d:%d %d:%d\n", p->tag, p->src1_ready, p->src1_val, p->src2_ready, p->src2_val, p->dest_ready, p->dest_val);
+		}*/
 		i += 1;
 	}
 
@@ -394,6 +443,8 @@ void dispatch()
 			while (tmp != fake_rob) {
 				if (tmp->tag == p->tag) {
 					tmp->pipeline_stage = ID;
+					timing_info[p->tag].fetch.duration = proc_cycle - timing_info[p->tag].fetch.start_cycle;
+					timing_info[p->tag].dispatch.start_cycle = proc_cycle;
 					p = p->next;
 					continue;
 				}
@@ -403,6 +454,7 @@ void dispatch()
 		p = p->next;
 	}
 
+	free(temp_list);
 }
 
 void issue()
@@ -416,7 +468,7 @@ void issue()
 	*/
 	temp_list = (node_t *)malloc(sizeof(node_t) * issue_count);
 	if (!temp_list) {
-		printf("Memory allocation failed!\n");
+		printf("Memory allocation failed! 2\n");
 		printf("Exiting...\n");
 		exit(1);
 	}
@@ -440,7 +492,7 @@ void issue()
 	sort_list(temp_list, temp_count);
 
 	i = 0;
-	while (i < temp_count && execute_count < N) {
+	while (i < temp_count && execute_count_op0 < (N) && execute_count_op1 < (2*N) && execute_count_op2 < (5*N)) {
 		/* Remove the instruction from issue_list. */
 		p = issue_list->next;
 		q = NULL;
@@ -465,11 +517,17 @@ void issue()
 		p->next = execute_list;
 
 		/* Reserve a Functional Unit. */
-		execute_count += 1;
+		if (p->op == OPTYPE0) {
+			execute_count_op0 += 1;
+		} else if (p->op == OPTYPE1) {
+			execute_count_op1 += 1;
+		} else if (p->op == OPTYPE2) {
+			execute_count_op2 += 1;
+		}
 		/* Free a Scheduling Queue Entry. */
 		issue_count -= 1;
 
-		/* Change pipeline stage from ID to IS. */
+		/* Change pipeline stage from IS to EX. */
 		p->pipeline_stage = EX;
 		tmp = fake_rob->next;
 		while (tmp != fake_rob) {
@@ -480,13 +538,85 @@ void issue()
 			tmp = tmp->next;
 		}
 
+		timing_info[p->tag].issue.duration = proc_cycle - timing_info[p->tag].issue.start_cycle;
+		timing_info[p->tag].execute.start_cycle = proc_cycle;
+
 		i += 1;
 	}
+
+	free(temp_list);
 }
 
 void execute()
 {
 	node_t *p=0, *q=0, *tmp=0;
+	count_op0=0; count_op1=0; count_op2=0;
+
+
+	/* Remove those instructions from the execute_list that are finishing this cycle. 
+	   Set the corresponding pipeline_stage in fake_rob to WB.
+	*/
+	p = execute_list->next;
+	q = NULL;
+	while (p != execute_list) {
+		if (p->op_latency == 0) {
+			/* Transition to WB stage. It will be reflected in the fake_rob. */
+			tmp = fake_rob->next;
+			while (tmp != fake_rob) {
+				if (tmp->tag == p->tag) {
+					tmp->pipeline_stage = WB;
+					if (tmp->op == OPTYPE0)
+						timing_info[tmp->tag].execute.duration = 1;
+					else if (tmp->op == OPTYPE1)
+						timing_info[tmp->tag].execute.duration = 2;
+					else if (tmp->op == OPTYPE2)
+						timing_info[tmp->tag].execute.duration = 5;
+					timing_info[tmp->tag].writeback.start_cycle = proc_cycle;
+				}
+				tmp = tmp->next;
+			}
+			/* Remove this instruction from the execute_list. 
+			   This models freeing up a Functional Unit.
+			*/
+			if (!q) {
+				execute_list->next = p->next;
+			} else {
+				q->next = p->next;
+			}
+			if (p->op == OPTYPE0) {
+				//execute_count_op0 -= 1;
+				count_op0 += 1;
+			} else if (p->op == OPTYPE1) {
+				//execute_count_op1 -= 1;
+				count_op1 += 1;
+			} else if (p->op == OPTYPE2) {
+				//execute_count_op2 -= 1;
+				count_op2 += 1;
+			}
+
+			/* Update the Register File to reflect Destination Reg being ready. */
+			if (register_file[p->dest_reg].ready == NOT_READY && register_file[p->dest_reg].tag_value == p->tag) {
+				register_file[p->dest_reg].ready = READY;
+				register_file[p->dest_reg].tag_value = p->dest_reg;
+			}
+
+			tmp = issue_list->next;
+			while (tmp != issue_list) {
+				if (tmp->src1_ready == NOT_READY && tmp->src1_val == p->tag) {
+					tmp->src1_ready = READY;
+					tmp->src1_val = register_file[p->dest_reg].tag_value;
+				} else if (tmp->src2_ready == NOT_READY && tmp->src2_val == p->tag) {
+					tmp->src2_ready = READY;
+					tmp->src2_val = register_file[p->dest_reg].tag_value;
+				}
+				tmp = tmp->next;
+			}
+			p = p->next;
+			continue;
+		}
+		q = p;
+		p = p->next;
+	}
 
 	/* Every instruction in the execute_list will do execution this cycle. 
 	   Model this behavior by decrementing op_latency by 1.
@@ -508,54 +638,6 @@ void execute()
 		p = p->next;
 	}
 
-	/* Remove those instructions from the execute_list that are finishing this cycle. 
-	   Set the corresponding pipeline_stage in fake_rob to WB.
-	*/
-	p = execute_list->next;
-	q = NULL;
-	while (p != execute_list) {
-		if (p->op_latency == 0) {
-			/* Transition to WB stage. It will be reflected in the fake_rob. */
-			tmp = fake_rob->next;
-			while (tmp != fake_rob) {
-				if (tmp->tag == p->tag) {
-					tmp->pipeline_stage = WB;
-				}
-				tmp = tmp->next;
-			}
-			/* Remove this instruction from the execute_list. 
-			   This models freeing up a Functional Unit.
-			*/
-			if (!q) {
-				execute_list->next = p->next;
-			} else {
-				q->next = p->next;
-			}
-			p = p->next;
-			execute_count -= 1;
-
-			/* Update the Register File to reflect Destination Reg being ready. */
-			register_file[p->dest_reg].ready = READY;
-			register_file[p->dest_reg].tag_value = p->dest_reg;
-
-			tmp = issue_list->next;
-			while (tmp != issue_list) {
-				if (tmp->src1_ready == NOT_READY && tmp->src1_val == p->tag) {
-					tmp->src1_ready = READY;
-					tmp->src1_val = register_file[p->dest_reg].tag_value;
-				} else if (tmp->src2_ready == NOT_READY && tmp->src2_val == p->tag) {
-					tmp->src2_ready = READY;
-					tmp->src2_val = register_file[p->dest_reg].tag_value;
-				}
-				tmp = tmp->next;
-			}
-
-			continue;
-		}
-		q = p;
-		p = p->next;
-	}
-
 }
 
 void fake_retire()
@@ -564,10 +646,26 @@ void fake_retire()
 	node_t *p;
 
 	p = fake_rob->next;
+	while (p != fake_rob) {
+		if (p->pipeline_stage == WB) {
+			timing_info[p->tag].writeback.duration = 1;
+		}
+		p = p->next;
+	}
+
+	p = fake_rob->next;
 
 	while (p != fake_rob) {
 		if (p->pipeline_stage == WB) {
 			fake_rob->next = p->next;
+			printf("%d fu{%d} src{%d,%d} dst{%d} IF{%d,%d} ID{%d,%d} IS{%d,%d} EX{%d,%d} WB{%d,%d}\n",
+				p->tag, p->op, p->src1_reg, p->src2_reg, p->dest_reg,
+				timing_info[p->tag].fetch.start_cycle, timing_info[p->tag].fetch.duration,
+				timing_info[p->tag].dispatch.start_cycle, timing_info[p->tag].dispatch.duration,
+				timing_info[p->tag].issue.start_cycle, timing_info[p->tag].issue.duration,
+				timing_info[p->tag].execute.start_cycle, timing_info[p->tag].execute.duration,
+				timing_info[p->tag].writeback.start_cycle, timing_info[p->tag].writeback.duration
+				);
 			p = p->next;
 		} else if (p->pipeline_stage != WB) {
 			break;

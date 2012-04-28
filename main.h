@@ -76,7 +76,10 @@ extern node_t *execute_list;
 
 extern int dispatch_count;
 extern int issue_count;
-extern int execute_count;
+//extern int execute_count;
+extern int execute_count_op0;
+extern int execute_count_op1;
+extern int execute_count_op2;
 
 #define REGISTER_FILE_SIZE 128
 
@@ -93,6 +96,7 @@ typedef struct _cycle_num_info_t {
 }cycle_num_info_t;
 
 typedef struct _timing_info_t {
+	unsigned int tag;
 	cycle_num_info_t fetch;
 	cycle_num_info_t dispatch;
 	cycle_num_info_t issue;
@@ -100,9 +104,16 @@ typedef struct _timing_info_t {
 	cycle_num_info_t writeback;
 }timing_info_t;
 
-extern timing_info_t timing_info[MAX_TRACEFILE_SIZE];
+extern timing_info_t *timing_info;
+
+extern int *execute_arr;
+extern int execute_arr_len;
+extern int count_op0;
+extern int count_op1;
+extern int count_op2;
 
 extern void initialize_data_structs(int, int);
+extern void initialize_timing_info(int);
 
 extern unsigned int proc_cycle;
 

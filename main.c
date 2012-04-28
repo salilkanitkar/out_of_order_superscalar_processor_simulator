@@ -24,11 +24,20 @@ node_t *execute_list=0;
 
 int dispatch_count=0;
 int issue_count=0;
-int execute_count=0;
+//int execute_count=0;
+int execute_count_op0=0;
+int execute_count_op1=0;
+int execute_count_op2=0;
+int *execute_arr=0;
+int execute_arr_len=0;
+int count_op0=0;
+int count_op1=0;
+int count_op2=0;
 
 register_file_t *register_file=0;
 
 unsigned int proc_cycle=0;
+timing_info_t *timing_info=0;
 
 void print_usage();
 
@@ -72,15 +81,19 @@ int main(int argc, char *argv[])
 		inst_stream[inst_count].tag = inst_count;
 
 		if (inst_stream[inst_count].op == OPTYPE0) {
-			inst_stream[inst_count].op_latency = OPTYPE0_LATENCY;
+			inst_stream[inst_count].op_latency = OPTYPE0_LATENCY-1;
 		} else if (inst_stream[inst_count].op == OPTYPE1) {
-			inst_stream[inst_count].op_latency = OPTYPE1_LATENCY;
+			inst_stream[inst_count].op_latency = OPTYPE1_LATENCY-1;
 		} else if (inst_stream[inst_count].op == OPTYPE2) {
-			inst_stream[inst_count].op_latency = OPTYPE2_LATENCY;
+			inst_stream[inst_count].op_latency = OPTYPE2_LATENCY-1;
 		}
+
+		//timing_info[inst_count].tag = inst_count;
 
 		inst_count += 1;
 	}
+
+	initialize_timing_info(inst_count);
 
 	i = 0;
 
@@ -94,47 +107,47 @@ int main(int argc, char *argv[])
 
 		/* FAKE_RETIRE */
 		fake_retire();
-//#ifdef DEBUG_FLAG
+#ifdef DEBUG_FLAG
 		printf("Cycle %d: FakeRetire Done.\n", proc_cycle);
 		print_fake_rob();
 		print_dispatch_list();
 		print_issue_list();
 		print_execute_list();
 		getchar();
-//#endif
+#endif
 
 		/* EXECUTE */
 		execute();
-//#ifdef DEBUG_FLAG
+#ifdef DEBUG_FLAG
 		printf("Cycle %d: Execute Done.\n", proc_cycle);
 		print_fake_rob();
 		print_dispatch_list();
 		print_issue_list();
 		print_execute_list();
 		getchar();
-//#endif
+#endif
 
 		/* ISSUE */
 		issue();
-//#ifdef DEBUG_FLAG
+#ifdef DEBUG_FLAG
 		printf("Cycle %d: Issue Done.\n", proc_cycle);
 		print_fake_rob();
 		print_dispatch_list();
 		print_issue_list();
 		print_execute_list();
 		getchar();
-//#endif
+#endif
 
 		/* DISPATCH */
 		dispatch();
-//#ifdef DEBUG_FLAG
+#ifdef DEBUG_FLAG
 		printf("Cycle %d: Dispatch Done.\n", proc_cycle);
 		print_fake_rob();
 		print_dispatch_list();
 		print_issue_list();
 		print_execute_list();
 		getchar();
-//#endif
+#endif
 
 		/* FETCH */
 		/* Keep on fetching new instructions until ALL of the following is TRUE - 
@@ -148,14 +161,14 @@ int main(int argc, char *argv[])
 			i += 1;
 			j += 1;
 		}
-//#ifdef DEBUG_FLAG
+#ifdef DEBUG_FLAG
 		printf("Cycle %d: Fetch Done.\n", proc_cycle);
 		print_fake_rob();
 		print_dispatch_list();
 		print_issue_list();
 		print_execute_list();
 		getchar();
-//#endif
+#endif
 
 	} while (advance_cycle(&i));
 	//} while (i < inst_count); 
