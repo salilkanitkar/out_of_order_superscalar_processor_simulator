@@ -1,0 +1,28 @@
+1) For GCC Benchmark
+set multiplot
+set title "gcc"
+set xlabel "S - Scheduling Queue Size"
+set ylabel "IPC"
+set xrange [7:270]
+set yrange [00.80:08.80]
+set style line 4 lw 1 lc rgb "blue"
+plot "for_gcc_plot" using 1:2 lw 2 lc rgb "red" title "N=1" with lines
+plot "for_gcc_plot" using 1:3 lw 2 lc rgb "blue" title "N=2" with lines
+plot "for_gcc_plot" using 1:4 lw 2 lc rgb "green" title "N=4" with lines
+plot "for_gcc_plot" using 1:5 lw 2 lc rgb "violet" title "N=8" with lines
+unset multiplot
+
+2) For PERL benchmark
+set multiplot
+set title "perl"
+set xlabel "S - Scheduling Queue Size"
+set ylabel "IPC"
+set xrange [7:270]
+set yrange [00.80:08.80]
+set style line 4 lw 1 lc rgb "blue"
+plot "for_perl_plot" using 1:2 lw 2 lc rgb "red" title "N=1" with lines
+plot "for_perl_plot" using 1:3 lw 2 lc rgb "blue" title "N=2" with lines
+plot "for_perl_plot" using 1:4 lw 2 lc rgb "green" title "N=4" with lines
+plot "for_perl_plot" using 1:5 lw 2 lc rgb "violet" title "N=8" with lines
+unset multiplot
+
